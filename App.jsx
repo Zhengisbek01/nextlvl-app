@@ -779,6 +779,11 @@ export default function NextLVL(){
   const [dateTo,setDateTo]=useState("");
   const [exporting,setExporting]=useState(false);
 
+  const [recording,setRecording]=useState(false);
+  const [transcribing,setTranscribing]=useState(false);
+  const mediaRecorderRef=useRef(null);
+  const audioChunksRef=useRef([]);
+
   const t=T[lang]||T.ru;
   const th=THEMES[themeName]||THEMES.darkGamer;
 
@@ -924,6 +929,65 @@ export default function NextLVL(){
   }
 
   function deleteTask(id){setTasks(p=>p.filter(t=>t.id!==id));}
+
+  // ── VOICE TASK INPUT ─────────────────────────────────────────────────────
+  async function startVoiceTask(){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mr=new MediaRecorder(stream);
+      audioChunksRef.current=[];
+      mr.ondataavailable=(e)=>{ if(e.data.size>0) audioChunksRef.current.push(e.data); };
+      mr.onstop=async()=>{
+        stream.getTracks().forEach(tr=>tr.stop());
+        const blob=new Blob(audioChunksRef.current,{type:mr.mimeType||"audio/webm"});
+        await transcribeAndFillTask(blob);
+      };
+      mediaRecorderRef.current=mr;
+      mr.start();
+      setRecording(true);
+    }catch(e){
+      alert("Нет доступа к микрофону: "+e.message);
+    }
+  }
+
+  function stopVoiceTask(){
+    if(mediaRecorderRef.current&&mediaRecorderRef.current.state!=="inactive"){
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+  }
+
+  async function transcribeAndFillTask(blob){
+    setTranscribing(true);
+    try{
+      const buf=await blob.arrayBuffer();
+      const bytes=new Uint8Array(buf);
+      let binary="";
+      for(let i=0;i<bytes.length;i++) binary+=String.fromCharCode(bytes[i]);
+      const base64=btoa(binary);
+      const langCode=lang==="kk"?"kk":(lang==="en"?"en":"ru");
+      const r=await fetch("/api/transcribe",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({audio:base64,mimeType:blob.type,language:langCode})
+      });
+      const data=await r.json();
+      if(data.error) throw new Error(data.error);
+      const text=(data.text||"").trim();
+      if(!text){ alert("Не удалось распознать речь, попробуйте ещё раз"); return; }
+      const lower=text.toLowerCase();
+      let prio="medium";
+      if(/срочно|важно|asap|urgent|шұғыл|маңызды/.test(lower)) prio="high";
+      else if(/не срочно|потом|когда-нибудь|later/.test(lower)) prio="low";
+      setTaskTitle(text.charAt(0).toUpperCase()+text.slice(1));
+      setTaskPrio(prio);
+      setShowTaskForm(true);
+    }catch(e){
+      alert("Ошибка распознавания: "+e.message);
+    }finally{
+      setTranscribing(false);
+    }
+  }
 
   function addTxn(){
     if(!txnAmount||isNaN(Number(txnAmount))) return;
@@ -1185,7 +1249,19 @@ export default function NextLVL(){
         <div style={{padding:"14px 14px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontSize:22,fontWeight:800,color:th.text}}>{t.tasks}</div>
-            <button onClick={()=>setShowTaskForm(true)} style={{background:th.accent,border:"none",borderRadius:10,padding:"6px 12px",color:th.bg,fontSize:11,fontWeight:700,cursor:"pointer"}}>{t.addTask}</button>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={recording?stopVoiceTask:startVoiceTask} disabled={transcribing} style={{
+                background:recording?"#FF4D4D":th.card,
+                border:"1px solid "+(recording?"#FF4D4D":th.cardBorder),
+                borderRadius:10,padding:"6px 12px",
+                color:recording?"#fff":th.text,fontSize:13,cursor:transcribing?"default":"pointer",
+                opacity:transcribing?0.6:1,transition:"all 0.15s",
+                display:"flex",alignItems:"center",gap:5
+              }}>
+                {transcribing?"⏳":(recording?"⏹ Стоп":"🎤 Голосом")}
+              </button>
+              <button onClick={()=>setShowTaskForm(true)} style={{background:th.accent,border:"none",borderRadius:10,padding:"6px 12px",color:th.bg,fontSize:11,fontWeight:700,cursor:"pointer"}}>{t.addTask}</button>
+            </div>
           </div>
           {/* Stats */}
           <div style={{display:"flex",gap:8,marginBottom:14}}>
@@ -1287,8 +1363,17 @@ export default function NextLVL(){
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:600,display:"flex",alignItems:"flex-end"}}>
               <div style={{width:"100%",maxWidth:500,margin:"0 auto",background:th.bg2,borderRadius:"20px 20px 0 0",padding:"20px 18px 32px"}}>
                 <div style={{fontSize:16,fontWeight:800,color:th.text,marginBottom:16}}>{t.addTask}</div>
-                <input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder={t.taskTitle}
-                  style={{width:"100%",padding:"12px 14px",background:th.card,border:"1px solid "+th.cardBorder,borderRadius:12,color:th.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",marginBottom:10}}/>
+                <div style={{display:"flex",gap:8,marginBottom:10}}>
+                  <input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder={t.taskTitle}
+                    style={{flex:1,padding:"12px 14px",background:th.card,border:"1px solid "+th.cardBorder,borderRadius:12,color:th.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                  <button onClick={recording?stopVoiceTask:startVoiceTask} disabled={transcribing} style={{
+                    width:46,flexShrink:0,borderRadius:12,
+                    background:recording?"#FF4D4D":th.card,
+                    border:"1px solid "+(recording?"#FF4D4D":th.cardBorder),
+                    color:recording?"#fff":th.text,fontSize:16,cursor:transcribing?"default":"pointer",
+                    opacity:transcribing?0.6:1
+                  }}>{transcribing?"⏳":(recording?"⏹":"🎤")}</button>
+                </div>
                 <div style={{display:"flex",gap:8,marginBottom:10}}>
                   {["high","medium","low"].map(p=>(
                     <div key={p} onClick={()=>setTaskPrio(p)} style={{flex:1,padding:"8px",textAlign:"center",borderRadius:10,cursor:"pointer",fontSize:11,fontWeight:700,
