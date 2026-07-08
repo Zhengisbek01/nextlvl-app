@@ -798,25 +798,25 @@ export default function NextLVL(){
 
   const NOTIFY_MSGS = {
     ru: {
-      morning: (n)=>[, ],
-      habits:  (n)=>[, ],
-      midday:  (n)=>[, ],
-      tasks:   (n)=>[, ],
-      evening: (n)=>[, ],
+      morning: (n)=>[`Доброе утро, ${n}! Новый день — новый уровень 🌅`, `${n}, начни день с плана. Загляни в NextLVL ☀️`],
+      habits:  (n)=>[`Не забудь отметить привычки сегодня, ${n} 💪`, `Серия привычек не должна прерываться, ${n} 🔥`],
+      midday:  (n)=>[`Как продвигается день, ${n}? Проверь задачи 📋`, `Самое время сверить финансы за сегодня, ${n} 💰`],
+      tasks:   (n)=>[`Вечер близко — успей закрыть важные задачи, ${n} ✅`, `${n}, глянь список задач — что ещё активно?`],
+      evening: (n)=>[`Подведи итоги дня в NextLVL, ${n} 🌙`, `${n}, отметь привычки перед сном, если ещё не успел ✨`],
     },
     kk: {
-      morning: (n)=>[, ],
-      habits:  (n)=>[, ],
-      midday:  (n)=>[, ],
-      tasks:   (n)=>[, ],
-      evening: (n)=>[, ],
+      morning: (n)=>[`Қайырлы таң, ${n}! Жаңа күн — жаңа деңгей 🌅`, `${n}, күнді жоспардан баста. NextLVL-ге қара ☀️`],
+      habits:  (n)=>[`Бүгінгі әдеттеріңді белгілеуді ұмытпа, ${n} 💪`, `Әдет сериясын үзбе, ${n} 🔥`],
+      midday:  (n)=>[`Күн қалай өтіп жатыр, ${n}? Тапсырмаларды тексер 📋`, `Қаржыны тексеретін кез келді, ${n} 💰`],
+      tasks:   (n)=>[`Кеш жақындап қалды — маңызды тапсырмаларды бітір, ${n} ✅`, `${n}, тапсырмалар тізіміне қара — не белсенді?`],
+      evening: (n)=>[`Күн қорытындысын NextLVL-де шығар, ${n} 🌙`, `${n}, ұйықтар алдында әдеттерді белгіле ✨`],
     },
     en: {
-      morning: (n)=>[, ],
-      habits:  (n)=>[, ],
-      midday:  (n)=>[, ],
-      tasks:   (n)=>[, ],
-      evening: (n)=>[, ],
+      morning: (n)=>[`Good morning, ${n}! New day, new level 🌅`, `${n}, start the day with a plan. Check NextLVL ☀️`],
+      habits:  (n)=>[`Don't forget to check off your habits today, ${n} 💪`, `Keep your streak alive, ${n} 🔥`],
+      midday:  (n)=>[`How's the day going, ${n}? Check your tasks 📋`, `Good time to review your finances, ${n} 💰`],
+      tasks:   (n)=>[`Evening's close — wrap up important tasks, ${n} ✅`, `${n}, take a look at what's still active`],
+      evening: (n)=>[`Wrap up the day in NextLVL, ${n} 🌙`, `${n}, check off habits before bed if you haven't yet ✨`],
     }
   };
 
