@@ -1,12 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "kz.nextlvl.app",
-      "sha256_cert_fingerprints": [
-        "ЗАМЕНИТЕ_НА_SHA256_ИЗ_PWABUILDER_ПОСЛЕ_ГЕНЕРАЦИИ_ПАКЕТА"
-      ]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "kz.next_lvl.twa",
+        "sha256_cert_fingerprints": ["70:DF:5B:A9:0B:1E:AC:87:30:D2:ED:26:2B:13:EF:E1:70:E7:F0:50:07:19:0A:D1:0B:DC:1A:89:F3:1A:82:58"]
+      }
+    }]
