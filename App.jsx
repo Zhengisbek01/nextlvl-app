@@ -273,6 +273,21 @@ const BADGES = [
 const getToday = ()=>new Date().toISOString().slice(0,10);
 const getMonthKey = (d)=>d?d.slice(0,7):getToday().slice(0,7);
 const getCurrentMonth = ()=>getToday().slice(0,7);
+const MONTH_NAMES = {
+  ru: ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
+  kk: ["Қаңтар","Ақпан","Наурыз","Сәуір","Мамыр","Маусым","Шілде","Тамыз","Қыркүйек","Қазан","Қараша","Желтоқсан"],
+  en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+};
+function formatMonthLabel(monthKey, lang){
+  const [y, m] = monthKey.split("-").map(Number);
+  const names = MONTH_NAMES[lang] || MONTH_NAMES.ru;
+  return names[m-1] + " " + y;
+}
+function shiftMonthKey(monthKey, delta){
+  const [y, m] = monthKey.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return d.toISOString().slice(0,7);
+}
 const fmtNum = (n)=>new Intl.NumberFormat("ru-RU").format(Math.abs(Math.round(n)));
 
 function getStreak(habit){
@@ -778,6 +793,7 @@ export default function NextLVL(){
   const [dateFrom,setDateFrom]=useState("");
   const [dateTo,setDateTo]=useState("");
   const [exporting,setExporting]=useState(false);
+  const [financeMonth,setFinanceMonth]=useState(getCurrentMonth());
 
   const [recording,setRecording]=useState(false);
   const [transcribing,setTranscribing]=useState(false);
@@ -1046,6 +1062,12 @@ export default function NextLVL(){
   const mExp=txns.filter(t=>getMonthKey(t.date)===getCurrentMonth()&&t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const mInc=txns.filter(t=>getMonthKey(t.date)===getCurrentMonth()&&t.type==="income").reduce((s,t)=>s+t.amount,0);
   const isLight=th.bg.startsWith("#F");
+
+  // ── FINANCE TAB: month-scoped view ──
+  const viewTxns=txns.filter(tx=>getMonthKey(tx.date)===financeMonth);
+  const viewInc=viewTxns.filter(tx=>tx.type==="income").reduce((s,tx)=>s+tx.amount,0);
+  const viewExp=viewTxns.filter(tx=>tx.type==="expense").reduce((s,tx)=>s+tx.amount,0);
+  const isCurrentFinanceMonth=financeMonth===getCurrentMonth();
 
   // ── RENDER ──
   if(splash) return <SplashScreen onDone={()=>setSplash(false)}/>;
@@ -1430,23 +1452,29 @@ export default function NextLVL(){
             <div style={{fontSize:22,fontWeight:800,color:th.text}}>{t.finance}</div>
             <button onClick={()=>setShowTxnForm(true)} style={{background:th.accent,border:"none",borderRadius:10,padding:"6px 12px",color:th.bg,fontSize:11,fontWeight:700,cursor:"pointer"}}>{t.addTxn}</button>
           </div>
+          {/* Month switcher */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"8px 6px",marginBottom:12}}>
+            <button onClick={()=>setFinanceMonth(m=>shiftMonthKey(m,-1))} style={{background:"none",border:"none",color:th.accent,fontSize:20,cursor:"pointer",padding:"4px 14px",lineHeight:1}}>‹</button>
+            <div style={{fontSize:14,fontWeight:700,color:th.text}}>{formatMonthLabel(financeMonth,lang)}</div>
+            <button onClick={()=>!isCurrentFinanceMonth&&setFinanceMonth(m=>shiftMonthKey(m,1))} disabled={isCurrentFinanceMonth} style={{background:"none",border:"none",color:isCurrentFinanceMonth?th.text3:th.accent,fontSize:20,cursor:isCurrentFinanceMonth?"default":"pointer",padding:"4px 14px",lineHeight:1,opacity:isCurrentFinanceMonth?0.35:1}}>›</button>
+          </div>
           {/* Balance */}
           <div style={{background:th.heroGrad,border:"1px solid "+th.heroBorder,borderRadius:18,padding:"16px",marginBottom:12}}>
             <div style={{fontSize:9,color:isLight?"rgba(255,255,255,0.6)":th.text2,letterSpacing:"0.1em",marginBottom:4}}>{t.balance}</div>
             <div style={{fontSize:28,fontWeight:900,color:isLight?"#fff":th.accent}}>
-              {mInc-mExp>=0?"+":"-"}{fmtNum(Math.abs(mInc-mExp))} ₸
+              {viewInc-viewExp>=0?"+":"-"}{fmtNum(Math.abs(viewInc-viewExp))} ₸
             </div>
             <div style={{display:"flex",gap:16,marginTop:8,fontSize:10}}>
-              <span style={{color:isLight?"rgba(255,255,255,0.7)":"#4AFF6A"}}>↑ {fmtNum(mInc)} ₸</span>
-              <span style={{color:isLight?"rgba(255,255,255,0.7)":"#FF6B6B"}}>↓ {fmtNum(mExp)} ₸</span>
+              <span style={{color:isLight?"rgba(255,255,255,0.7)":"#4AFF6A"}}>↑ {fmtNum(viewInc)} ₸</span>
+              <span style={{color:isLight?"rgba(255,255,255,0.7)":"#FF6B6B"}}>↓ {fmtNum(viewExp)} ₸</span>
             </div>
           </div>
           {/* Chart */}
-          {txns.length>0&&(
+          {viewTxns.length>0&&(
             <div style={{background:th.card,border:"1px solid "+th.cardBorder,borderRadius:16,padding:"12px",marginBottom:12}}>
               <ResponsiveContainer width="100%" height={120}>
                 <PieChart>
-                  <Pie data={[{name:t.income,value:mInc||0.01},{name:t.expense,value:mExp||0.01}]} cx="50%" cy="50%" outerRadius={50} dataKey="value">
+                  <Pie data={[{name:t.income,value:viewInc||0.01},{name:t.expense,value:viewExp||0.01}]} cx="50%" cy="50%" outerRadius={50} dataKey="value">
                     <Cell fill={th.accent}/><Cell fill="#FF6B6B"/>
                   </Pie>
                   <Tooltip formatter={(v)=>fmtNum(v)+" ₸"}/>
@@ -1454,9 +1482,9 @@ export default function NextLVL(){
               </ResponsiveContainer>
             </div>
           )}
-          {/* Txn list */}
-          {txns.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:th.text2,fontSize:13}}>{t.noTxns}</div>}
-          {txns.slice(0,20).map(tx=>(
+          {/* Txn list — scoped to selected month */}
+          {viewTxns.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:th.text2,fontSize:13}}>{t.noTxns}</div>}
+          {viewTxns.slice(0,50).map(tx=>(
             <div key={tx.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:th.card,border:"1px solid "+th.cardBorder,borderRadius:12,marginBottom:7}}>
               <div style={{width:32,height:32,borderRadius:10,background:tx.type==="income"?"rgba(74,255,106,0.15)":tx.type==="expense"?"rgba(255,107,107,0.15)":"rgba(0,180,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
                 {tx.type==="income"?"💰":tx.type==="expense"?"💸":"🏦"}
