@@ -1454,9 +1454,9 @@ export default function NextLVL(){
           </div>
           {/* Month switcher */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"8px 6px",marginBottom:12}}>
-            <button onClick={()=>setFinanceMonth(m=>shiftMonthKey(m,-1))} style={{background:"none",border:"none",color:th.accent,fontSize:20,cursor:"pointer",padding:"4px 14px",lineHeight:1}}>‹</button>
+            <button onClick={()=>setFinanceMonth(shiftMonthKey(financeMonth,-1))} style={{background:"none",border:"none",color:th.accent,fontSize:20,cursor:"pointer",padding:"4px 14px",lineHeight:1}}>‹</button>
             <div style={{fontSize:14,fontWeight:700,color:th.text}}>{formatMonthLabel(financeMonth,lang)}</div>
-            <button onClick={()=>!isCurrentFinanceMonth&&setFinanceMonth(m=>shiftMonthKey(m,1))} disabled={isCurrentFinanceMonth} style={{background:"none",border:"none",color:isCurrentFinanceMonth?th.text3:th.accent,fontSize:20,cursor:isCurrentFinanceMonth?"default":"pointer",padding:"4px 14px",lineHeight:1,opacity:isCurrentFinanceMonth?0.35:1}}>›</button>
+            <button onClick={()=>!isCurrentFinanceMonth&&setFinanceMonth(shiftMonthKey(financeMonth,1))} disabled={isCurrentFinanceMonth} style={{background:"none",border:"none",color:isCurrentFinanceMonth?th.text3:th.accent,fontSize:20,cursor:isCurrentFinanceMonth?"default":"pointer",padding:"4px 14px",lineHeight:1,opacity:isCurrentFinanceMonth?0.35:1}}>›</button>
           </div>
           {/* Balance */}
           <div style={{background:th.heroGrad,border:"1px solid "+th.heroBorder,borderRadius:18,padding:"16px",marginBottom:12}}>
