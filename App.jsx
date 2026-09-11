@@ -796,6 +796,7 @@ export default function NextLVL(){
   const [dateTo,setDateTo]=useState("");
   const [exporting,setExporting]=useState(false);
   const [financeMonth,setFinanceMonth]=useState(getCurrentMonth());
+  const [taskFilter,setTaskFilter]=useState("active"); // "active" | "done" | "overdue"
   const monthNavLockRef=useRef(false);
   function navigateMonth(delta){
     if(monthNavLockRef.current) return; // ignore rapid repeat clicks/double-fires
@@ -1294,16 +1295,20 @@ export default function NextLVL(){
               <button onClick={()=>setShowTaskForm(true)} style={{background:th.accent,border:"none",borderRadius:10,padding:"6px 12px",color:th.bg,fontSize:11,fontWeight:700,cursor:"pointer"}}>{t.addTask}</button>
             </div>
           </div>
-          {/* Stats */}
+          {/* Stats — clickable filter tabs */}
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             {[
-              {label:t.active,val:tasks.filter(t=>!t.done).length,c:th.accent},
-              {label:t.done,val:tasks.filter(t=>t.done).length,c:th.gold},
-              {label:t.overdue,val:tasks.filter(t=>isOverdue(t)).length,c:"#FF4D4D"},
+              {key:"active",label:t.active,val:tasks.filter(t=>!t.done&&!isOverdue(t)).length,c:th.accent},
+              {key:"done",label:t.done,val:tasks.filter(t=>t.done).length,c:th.gold},
+              {key:"overdue",label:t.overdue,val:tasks.filter(t=>isOverdue(t)).length,c:"#FF4D4D"},
             ].map((s,i)=>(
-              <div key={i} style={{flex:1,background:th.card,border:"1px solid "+th.cardBorder,borderRadius:12,padding:"8px",textAlign:"center"}}>
+              <div key={i} onClick={()=>setTaskFilter(s.key)} style={{
+                flex:1,background:th.card,borderRadius:12,padding:"8px",textAlign:"center",cursor:"pointer",
+                border:"1px solid "+(taskFilter===s.key?s.c:th.cardBorder),
+                transition:"all 0.15s"
+              }}>
                 <div style={{fontSize:18,fontWeight:900,color:s.c}}>{s.val}</div>
-                <div style={{fontSize:7,color:th.text3}}>{s.label}</div>
+                <div style={{fontSize:7,color:taskFilter===s.key?s.c:th.text3,fontWeight:taskFilter===s.key?700:400}}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -1373,23 +1378,33 @@ export default function NextLVL(){
             );
           })()}
 
-          {tasks.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:th.text2,fontSize:13}}>{t.noTasks}</div>}
-          {tasks.map(tk=>{
-            const prioColor={high:"#FF4D4D",medium:th.gold,low:th.accent}[tk.priority]||th.accent;
-            return(
-              <div key={tk.id} style={{background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10,opacity:tk.done?0.5:1}}>
-                <div onClick={()=>toggleTask(tk.id)} style={{width:22,height:22,borderRadius:"50%",border:"2px solid "+(tk.done?th.accent:th.cardBorder),background:tk.done?th.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:11,color:th.bg}}>{tk.done?"✓":""}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:th.text,textDecoration:tk.done?"line-through":"none"}}>{tk.title}</div>
-                  <div style={{display:"flex",gap:8,marginTop:2,alignItems:"center"}}>
-                    <span style={{fontSize:8,color:prioColor,fontWeight:700}}>● {t[tk.priority]}</span>
-                    {tk.deadline&&<span style={{fontSize:8,color:isOverdue(tk)?"#FF4D4D":th.text3}}>{tk.deadline}</span>}
+          {(()=>{
+            const filteredTasks = taskFilter==="done" ? tasks.filter(tk=>tk.done)
+              : taskFilter==="overdue" ? tasks.filter(tk=>isOverdue(tk))
+              : tasks.filter(tk=>!tk.done&&!isOverdue(tk));
+            const emptyLabel = taskFilter==="done" ? "Нет выполненных задач"
+              : taskFilter==="overdue" ? "Нет просроченных задач"
+              : t.noTasks;
+            return(<>
+              {filteredTasks.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:th.text2,fontSize:13}}>{emptyLabel}</div>}
+              {filteredTasks.map(tk=>{
+                const prioColor={high:"#FF4D4D",medium:th.gold,low:th.accent}[tk.priority]||th.accent;
+                return(
+                  <div key={tk.id} style={{background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10,opacity:tk.done?0.5:1}}>
+                    <div onClick={()=>toggleTask(tk.id)} style={{width:22,height:22,borderRadius:"50%",border:"2px solid "+(tk.done?th.accent:th.cardBorder),background:tk.done?th.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:11,color:th.bg}}>{tk.done?"✓":""}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:600,color:th.text,textDecoration:tk.done?"line-through":"none"}}>{tk.title}</div>
+                      <div style={{display:"flex",gap:8,marginTop:2,alignItems:"center"}}>
+                        <span style={{fontSize:8,color:prioColor,fontWeight:700}}>● {t[tk.priority]}</span>
+                        {tk.deadline&&<span style={{fontSize:8,color:isOverdue(tk)?"#FF4D4D":th.text3}}>{tk.deadline}</span>}
+                      </div>
+                    </div>
+                    <button onClick={()=>deleteTask(tk.id)} style={{background:"none",border:"none",color:th.text3,fontSize:16,cursor:"pointer"}}>✕</button>
                   </div>
-                </div>
-                <button onClick={()=>deleteTask(tk.id)} style={{background:"none",border:"none",color:th.text3,fontSize:16,cursor:"pointer"}}>✕</button>
-              </div>
-            );
-          })}
+                );
+              })}
+            </>);
+          })()}
           {showTaskForm&&(
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:600,display:"flex",alignItems:"flex-end"}}>
               <div style={{width:"100%",maxWidth:500,margin:"0 auto",background:th.bg2,borderRadius:"20px 20px 0 0",padding:"20px 18px 32px"}}>
