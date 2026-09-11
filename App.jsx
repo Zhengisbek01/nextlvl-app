@@ -284,9 +284,11 @@ function formatMonthLabel(monthKey, lang){
   return names[m-1] + " " + y;
 }
 function shiftMonthKey(monthKey, delta){
-  const [y, m] = monthKey.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return d.toISOString().slice(0,7);
+  let [y, m] = monthKey.split("-").map(Number);
+  m += delta;
+  while(m < 1){ m += 12; y -= 1; }
+  while(m > 12){ m -= 12; y += 1; }
+  return y + "-" + String(m).padStart(2,"0");
 }
 const fmtNum = (n)=>new Intl.NumberFormat("ru-RU").format(Math.abs(Math.round(n)));
 
