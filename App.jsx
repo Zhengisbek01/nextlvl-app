@@ -1155,10 +1155,10 @@ export default function NextLVL(){
           <div style={{display:"flex",gap:8,margin:"10px 14px 0"}}>
             {[
               {icon:"✓",val:todayHabits.length+"/"+habits.length,label:t.habitsToday,color:th.accent},
-              {icon:"₸",val:fmtNum(mExp)+" ₸",label:t.expenses,color:th.text},
+              {icon:"₸",val:fmtNum(mExp)+" ₸",label:t.expenses,color:th.text,onClick:()=>setTab("finance")},
               {icon:"★",val:totalXP,label:t.totalXP,color:th.gold},
             ].map((s,i)=>(
-              <div key={i} style={{flex:1,background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"9px 8px"}}>
+              <div key={i} onClick={s.onClick} style={{flex:1,background:th.card,border:"1px solid "+th.cardBorder,borderRadius:14,padding:"9px 8px",cursor:s.onClick?"pointer":"default"}}>
                 <div style={{width:26,height:26,borderRadius:8,background:"rgba(128,128,128,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,marginBottom:4}}>{s.icon}</div>
                 <div style={{fontSize:14,fontWeight:900,color:s.color}}>{s.val}</div>
                 <div style={{fontSize:6.5,color:th.text3,marginTop:2}}>{s.label}</div>
