@@ -1,4 +1,4 @@
-const CACHE_NAME = "nextlvl-cache-v1";
+const CACHE_NAME = "nextlvl-cache-v3";
 const APP_SHELL = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
