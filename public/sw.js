@@ -1,4 +1,4 @@
-const CACHE_NAME = "nextlvl-cache-v3";
+const CACHE_NAME = "nextlvl-cache-v4";
 const APP_SHELL = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -54,6 +54,36 @@ self.addEventListener("fetch", (event) => {
         }
         return res;
       }).catch(() => cached);
+    })
+  );
+});
+
+// ─── PUSH-УВЕДОМЛЕНИЯ ────────────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : "" }; }
+  const title = data.title || "NextLVL";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-96.png",
+      tag: data.tag || "nextlvl",
+      renotify: true,
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.startsWith(self.location.origin) && "focus" in c) return c.focus();
+      }
+      return self.clients.openWindow ? self.clients.openWindow(target) : null;
     })
   );
 });

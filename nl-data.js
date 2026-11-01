@@ -472,6 +472,11 @@ export const dayLabel = (k, lang) => { const [, m, d] = k.split("-").map(Number)
 
 export const L = {
   ru: {
+    notifOn: "Уведомления включены — отправили проверочное", notifOnNoTest: "Подписка сохранена, но проверочное уведомление не дошло. Проверьте разрешения телефона",
+    notifTestSent: "Проверочное уведомление отправлено", notifTest: "Проверить уведомления", notifTestSub: "придёт тестовое уведомление",
+    notifUnsupported: "Это устройство или браузер не поддерживает уведомления. На iPhone сначала добавьте NextLVL на экран «Домой»",
+    notifDenied: "Уведомления запрещены. Разрешите их: Настройки телефона → Приложения → NextLVL (или Chrome) → Уведомления",
+    notifServer: "Сервер уведомлений ещё не настроен", notifNet: "Нет связи с сервером, попробуйте позже",
     slogan: "NEXT LEVEL EVERY DAY", chooseLang: "Выбери язык / Тілді таңда / Choose language",
     azaHello: "Привет! Я Аза — твой AI-советник NextLVL.", askName: "Как тебя зовут?", namePh: "Введи своё имя", start: "Начать", next: "Далее",
     nav_home: "Главная", nav_skills: "Навыки", nav_fin: "Финансы", nav_tasks: "Задачи", nav_profile: "Профиль",
@@ -523,13 +528,18 @@ export const L = {
     termsAgree: "Я прочитал(а) и принимаю условия", accept: "Принять и продолжить", read: "Читать",
     aza: "Aza AI", azaOnline: "онлайн", chatPh: "Спроси Азу…", azaErr: "Aza сейчас недоступна, попробуйте позже",
     shareText: (m, xp, h, t, s) => "Мои итоги за " + m + " в NextLVL: " + xp + ", привычки " + h + ", задачи " + t + ", сбережено " + s + ". next-lvl.kz",
-    copied: "Скопировано в буфер обмена", earned: "получен", notifTimes: "07:00 · 10:00 · 13:00 · 17:00 · 21:00",
+    copied: "Скопировано в буфер обмена", earned: "получен", notifTimes: "07:00 · 10:00 · 13:00 · 17:00 · 21:00 (Астана)",
     b_first_habit: "Первая привычка", b_habits5: "5 привычек", b_week_streak: "7 дней подряд", b_month_streak: "30 дней подряд", b_xp100: "100 XP", b_xp1000: "1000 XP",
     b_tasks10: "10 задач", b_tasks50: "50 задач", b_spheres5: "Все 5 сфер", b_fin30: "Учёт 30 дней", b_piggy: "Копилка", b_goal_done: "Цель достигнута",
     lv: ["Новичок", "Стартер", "Практик", "Боец", "Мастер", "Чемпион", "Легенда", "Элита", "Непобедимый", "NextLVL Pro"],
     u_days: (n) => n + " " + plural(n, ["день", "дня", "дней"]), u_xp: (n) => n + " XP", u_tasks: (n) => n + " " + plural(n, ["задача", "задачи", "задач"]), u_pct: (n) => n + "%",
   },
   kk: {
+    notifOn: "Хабарландырулар қосылды — тексеру хабары жіберілді", notifOnNoTest: "Жазылым сақталды, бірақ тексеру хабары жетпеді. Телефон рұқсаттарын тексеріңіз",
+    notifTestSent: "Тексеру хабары жіберілді", notifTest: "Хабарландыруды тексеру", notifTestSub: "тест хабары келеді",
+    notifUnsupported: "Бұл құрылғы немесе браузер хабарландыруларды қолдамайды. iPhone-да алдымен NextLVL-ді «Басты экранға» қосыңыз",
+    notifDenied: "Хабарландыруларға тыйым салынған. Рұқсат беріңіз: Телефон баптаулары → Қолданбалар → NextLVL (немесе Chrome) → Хабарландырулар",
+    notifServer: "Хабарландыру сервері әлі бапталмаған", notifNet: "Сервермен байланыс жоқ, кейінірек көріңіз",
     slogan: "NEXT LEVEL EVERY DAY", chooseLang: "Выбери язык / Тілді таңда / Choose language",
     azaHello: "Сәлем! Мен Аза — NextLVL AI-кеңесшіңмін.", askName: "Атың кім?", namePh: "Атыңды жаз", start: "Бастау", next: "Әрі қарай",
     nav_home: "Басты", nav_skills: "Дағдылар", nav_fin: "Қаржы", nav_tasks: "Тапсырма", nav_profile: "Профиль",
@@ -588,6 +598,11 @@ export const L = {
     u_days: (n) => n + " күн", u_xp: (n) => n + " XP", u_tasks: (n) => n + " тапсырма", u_pct: (n) => n + "%",
   },
   en: {
+    notifOn: "Notifications on — test notification sent", notifOnNoTest: "Subscription saved, but the test notification didn't arrive. Check phone permissions",
+    notifTestSent: "Test notification sent", notifTest: "Test notifications", notifTestSub: "you'll get a test notification",
+    notifUnsupported: "This device or browser doesn't support notifications. On iPhone, add NextLVL to the Home Screen first",
+    notifDenied: "Notifications are blocked. Allow them in phone Settings → Apps → NextLVL (or Chrome) → Notifications",
+    notifServer: "Notification server isn't set up yet", notifNet: "Can't reach the server, try later",
     slogan: "NEXT LEVEL EVERY DAY", chooseLang: "Выбери язык / Тілді таңда / Choose language",
     azaHello: "Hi! I'm Aza — your NextLVL AI advisor.", askName: "What's your name?", namePh: "Enter your name", start: "Start", next: "Next",
     nav_home: "Home", nav_skills: "Skills", nav_fin: "Finance", nav_tasks: "Tasks", nav_profile: "Profile",

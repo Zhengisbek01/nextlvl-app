@@ -164,26 +164,47 @@ function MicBtn({ voice, th, t, size = 40 }) {
   );
 }
 
-// ─── УВЕДОМЛЕНИЯ (локальные, пока приложение открыто) ─────────────────────────
-const NOTIFY_TIMES = [{ h: 7, type: "morning" }, { h: 10, type: "habits" }, { h: 13, type: "midday" }, { h: 17, type: "tasks" }, { h: 21, type: "evening" }];
-const NOTIFY_MSGS = {
-  ru: { morning: (n) => [`Доброе утро, ${n}! Новый день — новый уровень`, `${n}, начни день с плана. Загляни в NextLVL`], habits: (n) => [`Не забудь отметить привычки, ${n}`, `Серия не должна прерываться, ${n}`], midday: (n) => [`Как идёт день, ${n}? Проверь задачи`, `Самое время записать расходы, ${n}`], tasks: (n) => [`Вечер близко — закрой важные задачи, ${n}`, `${n}, что ещё в «Сделать сейчас»?`], evening: (n) => [`Подведи итоги дня в NextLVL, ${n}`, `${n}, отметь привычки перед сном`] },
-  kk: { morning: (n) => [`Қайырлы таң, ${n}! Жаңа күн — жаңа деңгей`, `${n}, күнді жоспардан баста`], habits: (n) => [`Әдеттеріңді белгілеуді ұмытпа, ${n}`, `Серияны үзбе, ${n}`], midday: (n) => [`Күн қалай өтіп жатыр, ${n}? Тапсырмаларды тексер`, `Шығындарды жазатын уақыт, ${n}`], tasks: (n) => [`Кеш жақын — маңызды тапсырмаларды бітір, ${n}`, `${n}, «Қазір істеу» бөлімінде не қалды?`], evening: (n) => [`Күн қорытындысын шығар, ${n}`, `${n}, ұйықтар алдында әдеттерді белгіле`] },
-  en: { morning: (n) => [`Good morning, ${n}! New day, new level`, `${n}, start the day with a plan`], habits: (n) => [`Don't forget your habits, ${n}`, `Keep your streak alive, ${n}`], midday: (n) => [`How's the day, ${n}? Check your tasks`, `Good time to log expenses, ${n}`], tasks: (n) => [`Evening's close — wrap up key tasks, ${n}`, `${n}, what's left in “Do now”?`], evening: (n) => [`Wrap up the day in NextLVL, ${n}`, `${n}, check off habits before bed`] },
-};
-let notifTimers = [];
-function scheduleNotifications(name, lang) {
-  notifTimers.forEach(clearTimeout); notifTimers = [];
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  NOTIFY_TIMES.forEach(({ h, type }) => {
-    const now = new Date(), next = new Date(); next.setHours(h, 0, 0, 0);
-    if (next <= now) next.setDate(next.getDate() + 1);
-    notifTimers.push(setTimeout(() => {
-      const list = (NOTIFY_MSGS[lang] || NOTIFY_MSGS.ru)[type](name);
-      try { new Notification("NextLVL", { body: list[Math.floor(Math.random() * list.length)], icon: "/icons/icon-192.png" }); } catch (e) {}
-      scheduleNotifications(name, lang);
-    }, next - now));
-  });
+// ─── PUSH-УВЕДОМЛЕНИЯ ─────────────────────────────────────────────────────────
+// Раньше напоминания ставились таймером в открытой странице через new Notification():
+// на Android это запрещено, а при закрытом приложении таймеры не работают.
+// Теперь — настоящие web-push с сервера (api/push-subscribe.js, api/push-send.js).
+const b64ToBytes = (b64) => { const pad = "=".repeat((4 - (b64.length % 4)) % 4); const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(raw, (c) => c.charCodeAt(0)); };
+const bytesToB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const withTimeout = (p, ms, err) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(err)), ms))]);
+
+async function pushEnable({ lang, name, test, silent }) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") throw new Error("unsupported");
+  let perm = Notification.permission;
+  if (perm !== "granted") {
+    if (silent) throw new Error("denied");
+    perm = await Notification.requestPermission();
+  }
+  if (perm !== "granted") throw new Error("denied");
+  const reg = await withTimeout(navigator.serviceWorker.ready, 10000, "sw");
+  const cfg = await fetch("/api/push-subscribe").then((r) => r.json()).catch(() => null);
+  if (!cfg) throw new Error("network");
+  if (!cfg.publicKey || !cfg.configured) throw new Error("server");
+  let sub = await reg.pushManager.getSubscription();
+  if (sub && sub.options && sub.options.applicationServerKey && bytesToB64(sub.options.applicationServerKey) !== cfg.publicKey.replace(/=+$/, "")) {
+    await sub.unsubscribe().catch(() => {}); sub = null; // ключ сервера сменился — подписываемся заново
+  }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(cfg.publicKey) });
+  const r = await fetch("/api/push-subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscription: sub.toJSON(), lang, name, test: !!test }) }).catch(() => null);
+  if (!r) throw new Error("network");
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error === "not_configured" ? "server" : "network");
+  return d;
+}
+async function pushDisable() {
+  try {
+    if (!("serviceWorker" in navigator)) return;
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, "sw");
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch("/api/push-subscribe", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {});
+      await sub.unsubscribe().catch(() => {});
+    }
+  } catch (e) {}
 }
 
 // ─── ЗАГРУЗКА ─────────────────────────────────────────────────────────────────
@@ -225,7 +246,13 @@ export default function NextLVL() {
   useEffect(() => { persist(KEYS.settings, settings); }, [settings]);
   useEffect(() => { if (user) persist(KEYS.user, user); }, [user]);
   useEffect(() => { if (terms) persist(KEYS.terms, terms); }, [terms]);
-  useEffect(() => { if (user && user.name && notif) scheduleNotifications(user.name, lang); }, [user && user.name, lang, notif]);
+  // обновляем push-подписку (имя/язык; заодно переводит старых пользователей с таймеров на push)
+  useEffect(() => {
+    if (!(user && user.name && notif)) return;
+    pushEnable({ lang, name: user.name, silent: true }).catch((e) => {
+      if (e.message === "denied" || e.message === "unsupported") { setNotif(false); try { localStorage.setItem(KEYS.notif, "false"); } catch (_) {} }
+    });
+  }, [user && user.name, lang, notif]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(""), 2800); return () => clearTimeout(id); }, [toast]);
   useEffect(() => { const id = setTimeout(() => setSplash(false), 1400); return () => clearTimeout(id); }, []);
   useEffect(() => {
@@ -1152,11 +1179,29 @@ function Settings({ app, onBack }) {
   );
   const Group = ({ children }) => <div style={{ background: th.card, borderRadius: 16 }}>{React.Children.toArray(children).filter(Boolean).map((c, i) => <div key={i} style={{ borderTop: i ? "1px solid " + th.line : "none" }}>{c}</div>)}</div>;
 
+  const [notifBusy, setNotifBusy] = useState(false);
+  const notifError = (e) => app.setToast(t({ unsupported: "notifUnsupported", denied: "notifDenied", server: "notifServer", sw: "notifNet", network: "notifNet" }[e.message] || "notifNet"));
   async function toggleNotif() {
-    if (notif) { setNotif(false); try { localStorage.setItem(KEYS.notif, "false"); } catch (e) {} return; }
-    if (typeof Notification === "undefined") return;
-    const perm = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-    if (perm === "granted") { setNotif(true); try { localStorage.setItem(KEYS.notif, "true"); } catch (e) {} }
+    if (notifBusy) return;
+    setNotifBusy(true);
+    try {
+      if (notif) {
+        await pushDisable();
+        setNotif(false); try { localStorage.setItem(KEYS.notif, "false"); } catch (e) {}
+      } else {
+        const d = await pushEnable({ lang, name: user.name, test: true });
+        setNotif(true); try { localStorage.setItem(KEYS.notif, "true"); } catch (e) {}
+        app.setToast(d.test === "sent" ? t("notifOn") : t("notifOnNoTest"));
+      }
+    } catch (e) { notifError(e); }
+    setNotifBusy(false);
+  }
+  async function testNotif() {
+    if (notifBusy) return;
+    setNotifBusy(true);
+    try { const d = await pushEnable({ lang, name: user.name, test: true }); app.setToast(d.test === "sent" ? t("notifTestSent") : t("notifOnNoTest")); }
+    catch (e) { notifError(e); }
+    setNotifBusy(false);
   }
   function downloadBackup() {
     const data = buildBackup({ user, habits: app.habits, tasks: app.tasks, txns: app.txns, goal: app.goal, settings });
@@ -1213,6 +1258,7 @@ function Settings({ app, onBack }) {
       <SectionLabel th={th}>{t("notifs")}</SectionLabel>
       <Group>
         <Row icon={IC.bell} title={t("reminders")} sub={t("notifTimes")} right={<Switch on={notif} onClick={toggleNotif} th={th} label={t("reminders")} />} />
+        {notif && <Row icon={IC.check} title={t("notifTest")} sub={t("notifTestSub")} onClick={testNotif} right={<span style={{ paddingRight: 14, color: th.muted }}>{notifBusy ? "…" : <Icon d={IC.chevR} size={16} />}</span>} />}
         <Row icon={IC.sparkles} title={t("azaTips")} right={<Switch on={settings.aza} onClick={() => setSettings((s) => ({ ...s, aza: !s.aza }))} th={th} label={t("azaTips")} />} />
       </Group>
 
